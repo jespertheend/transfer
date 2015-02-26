@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <title>Transfer awesome™ scores</title>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <style>
+      body{font-family:helvetica;font-size:12pt;}
+      p{margin:4px 0px;}
+      .error{color:red; height: 20px;}
+      .loading{position: absolute;}
+      .nameText{color: blue;}
+    </style>
+  </head>
+  <body>
+    <div id="step1">
+      <p>Because of the way vanilla minecraft works, when you change your minecraft in game name, you will lose all your scores on the awesome™   server. This includes hats, donations achievements and the epic quest of epicness progress. On this site you can transfer scores from one   player to another, to start enter your current IGN</p>
+      <input type="text" placeholder="minecraft username" id="IGN">
+      <input type="button" value="submit" id="submitButton" onclick="submit()" disabled>
+      <p class="error" id="error"></p>
+      <img src='loading.gif' id="loading1" class="loading" style='display:none;'>
+    </div>
+    <div id="step2" style="display:none;">
+      <p>Alright I've found a couple of old usernames from you, which one do you want to transfer to your new username?</p>
+      <div id="oldUserList"></div>
+      <input type="button" value="transfer!" id="submitButton2" onclick="areYouSure()" disabled>
+    </div>
+    <div id="step3" style="display:none;">
+      <p class="error">Make sure you are on the server while using this tool</p>
+      <p>Ok here we go, are you sure you want to transfer all scores from <span class="nameText" id="oldName"></span> to <span class="nameText" id="curName"></span>?</p>
+      <input type="button" value="no" id="no" onclick="no()">
+      <input type="button" value="yes" id="yes" onclick="transfer()">
+    </div>
+    <div id="stepNo" style="display:none;">
+      <p>Not sure why I made that button, but alright, you can close the page now</p>
+    </div>
+    <div id="stepTransfer" style="display:none;">
+      <p>Alright, one last step, check the chat on the server. You should have a message to confirm this action. After that you'll be kicked and the transfer will begin.</p>
+      <p>This takes about 3 minutes</p>
+      <img src='loading.gif' id="loading2" class="loading">
+    </div>
+    <div id="stepDone" style="display:none;">
+      <p>Done! Everything should be transferred now. :D</p>
+      <p>If something went wrong somehow (which is totally possible because I suck performing actions) feel free to contact me on <a href="https://twitter.com/jespertheend">twitter</a>.</p>
+    </div>
+    <div id="stepError" style="display:none;">
+      <h1>D:</h1><p>I honestly don't know what happened, but something went wrong, try again and if it keeps happening just contact me on <a href="https://twitter.com/jespertheend">twitter</a>.</p>
+      <p>The server returned the following error:</p>
+      <p class="error" id="error2"></p>
+    </div>
+    <script>
+      var currentName, oldName;
+
+      $(document).ready(function() {
+        $("#IGN").focus();
+        $("#submitButton").removeAttr("disabled");
+      });
+
+      $("body").keypress(function(e){
+        if(e.keyCode==13)
+        submit();
+      });
+
+      function submit() {
+        ign = $("#IGN").val();
+        $.ajax({
+          type: "GET",
+          url: "listUsernames.php",
+          data: {'IGN':ign},
+          beforeSend: function(){
+            $("#loading1").show();
+          }
+        }).done(function(data){
+          $("#loading1").hide();
+          if(data.status=="error"){
+            $("#error").html(data.error);
+          }else if(data.status=="success"){
+            $("#step1").hide();
+            currentName=data.currentName;
+            if(data.usernames.length==1){
+              oldName=data.usernames[0];
+              areYouSure();
+            }else{
+              data.usernames.forEach(function(entry){
+                $("#oldUserList").append("<label for='radio-"+entry+"' class='oldUserLabel'><input type='radio' name='oldUserList' id='radio-"+entry+"' value='"+entry+"'>"+entry+"</label><br>");
+              });
+              $("input:radio[name=oldUserList]").change(function(){
+                $("#submitButton2").removeAttr("disabled");
+              });
+              $("input:radio[name=oldUserList]").click(function() {
+                oldName = $(this).val();
+              });
+              $("#step2").show();
+            }
+          }
+        });
+      }
+
+      function areYouSure(){
+        $("#step2").hide();
+        $("#oldName").html(oldName);
+        $("#curName").html(currentName);
+        $("#step3").show();
+      }
+
+      function no(){
+        $("#step3").hide();
+        $("#stepNo").show();
+      }
+
+      function transfer(){
+        $("#step3").hide();
+        $("#stepTransfer").show();
+        $.ajax({
+          type: "GET",
+          url: "transfer.php",
+          data: {'old':oldName,'cur':currentName},
+          error: function(jqXHR, textStatus, errorThrown){
+            $("#stepTransfer").hide();
+            $("#stepError").show();
+            $("#error2").html(errorThrown);
+          },
+          success: function(data){
+            if(data.result=="success"){
+              $("#stepTransfer").hide();
+              $("#stepDone").show();
+            }else if(data.result=="error"){
+              $("#error2").html(data.error);
+              $("#stepTransfer").hide();
+              $("#stepError").show();
+            }
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
