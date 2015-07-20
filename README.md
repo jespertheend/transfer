@@ -1,2 +1,2 @@
 # transfer
-stuff
+the transfer script for the minecraft server mc.jespertheend.com
